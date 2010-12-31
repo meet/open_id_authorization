@@ -1,0 +1,40 @@
+OpenIdAuthorization
+===================
+
+A wrapper around open_id_authentication to use OpenID Attribute Exchange for authorization information.
+
+NOTE: Requires that open_id_authentication NOT be installed as a plugin in vendor/plugins!
+
+Instead, this gem will handle the initialization of open_id_authentication in Rails 3 style.
+Add the following to your Gemfile:
+
+  gem 'open_id_authentication', '0.0.1', :git => 'git://github.com/rails/open_id_authentication.git'
+  gem 'open_id_authorization', '0.0.1', :git => 'git://github.com/meet/open_id_authorization.git'
+
+First specify the OpenID server to use (assumes identity_select):
+
+  OpenIdAuthorization.provider = 'https://openid.server/'
+
+Then, in a controller, do something like:
+
+  authorize_with_open_id(:required => [ :groups ]) do |result, identity_url, attributes|
+    if result.successful?
+      # username is always retrieved
+      attributes[:username] == 'root'
+      
+      # comma-separated values are split back into an Array
+      attributes[:groups].include? 'wheel'
+      
+    else
+      # authentication failed
+      
+    end
+  end
+
+Or pass the server as the first argument.
+
+
+Authorization
+=============
+
+Remarkably, authorize_with_open_id performs no authorization whatsoever; your code must do this.
