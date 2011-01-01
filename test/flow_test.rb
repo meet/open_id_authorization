@@ -6,7 +6,7 @@ class ExampleFlowTest < ActionController::IntegrationTest
     OpenID.fetcher = MockOpenIDFetcher.new
     OpenID.fetcher.respond_with_provider_xrds 'https://example.com/'
     OpenID.fetcher.respond_with_unsupported 'https://example.com/openid'
-    get '/example/authorize', {}, { 'X-FORWARDED-PROTO' => 'https' }
+    get '/example/authorize', {}, { 'HTTP_X_FORWARDED_PROTO' => 'https' }
     params = Rack::Utils.parse_query(response.redirect_url)
     assert_equal 'https://www.example.com', params['openid.realm']
     assert_equal 'https://www.example.com/example/authorize', params['openid.return_to']

@@ -40,12 +40,12 @@ module OpenIdAuthorization
     username = OPEN_ID_AX_SCHEMA[:username]
     options[:required].push(username) unless options[:required].include?(username)
     
-    if env and env['X-FORWARDED-PROTO']
+    if env and env['HTTP_X_FORWARDED_PROTO']
       ports = { 'http' => '80', 'https' => '443' }
       if env['SERVER_PORT'] == ports[env['rack.url_scheme']]
-        env['SERVER_PORT'] = ports[env['X-FORWARDED-PROTO']]
+        env['SERVER_PORT'] = ports[env['HTTP_X_FORWARDED_PROTO']]
       end
-      env['rack.url_scheme'] = env['X-FORWARDED-PROTO']
+      env['rack.url_scheme'] = env['HTTP_X_FORWARDED_PROTO']
     end
     
     authenticate_with_open_id(provider, options) do |result, identity_url|
