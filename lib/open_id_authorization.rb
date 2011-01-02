@@ -14,6 +14,35 @@ class OpenIdAuthorizationRailtie < Rails::Railtie
   end
 end
 
+# Monkey patch Rack::OpenID to respect X-Forwarded-Proto
+module Rack
+  class OpenID
+    
+    def self.with_forwarded_proto(method)
+      orig = self.instance_method(method)
+      define_method(method) do |env, *args|
+        ports = { 'http' => '80', 'https' => '443' }
+        server_port = env['SERVER_PORT']
+        url_scheme = env['rack.url_scheme']
+        begin
+          if forwarded = env['HTTP_X_FORWARDED_PROTO']
+            env['SERVER_PORT'] = ports[forwarded] if server_port == ports[url_scheme]
+            env['rack.url_scheme'] = forwarded
+          end
+          return orig.bind(self).call(env, *args)
+        ensure
+          env['SERVER_PORT'] = server_port
+          env['rack.url_scheme'] = url_scheme
+        end
+      end
+    end
+    
+    with_forwarded_proto(:begin_authentication)
+    with_forwarded_proto(:complete_authentication)
+    
+  end
+end
+
 module OpenIdAuthorization
   
   OPEN_ID_AX_SCHEMA = {
@@ -39,14 +68,6 @@ module OpenIdAuthorization
     options[:required].map! { |r| r.is_a?(Symbol) ? OPEN_ID_AX_SCHEMA[r] : r }
     username = OPEN_ID_AX_SCHEMA[:username]
     options[:required].push(username) unless options[:required].include?(username)
-    
-    if env and env['HTTP_X_FORWARDED_PROTO']
-      ports = { 'http' => '80', 'https' => '443' }
-      if env['SERVER_PORT'] == ports[env['rack.url_scheme']]
-        env['SERVER_PORT'] = ports[env['HTTP_X_FORWARDED_PROTO']]
-      end
-      env['rack.url_scheme'] = env['HTTP_X_FORWARDED_PROTO']
-    end
     
     authenticate_with_open_id(provider, options) do |result, identity_url|
       if result.successful?
